@@ -1,0 +1,22 @@
+html, body {
+  width: 100%;
+  height: 100%;
+  padding: 0px;
+  margin: 0px;
+}
+
+#root-element {
+  width: 100%;
+  height: 100%;
+  background-color: black;
+}
+
+.orbital-pe {
+
+}
+
+#drawingCanvas {
+  width: 100%;
+  height: 100%;
+  background-color: white;
+}
