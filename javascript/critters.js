@@ -63,11 +63,11 @@ function Critter(p, v, s, attribs) {
   // NOTE: attributes should be set upfront for the critter and NEVER change
   // thereafter (unless I introduce some sort of evolution system...).
   this.attributes = {
-    // Curiosity: float [-1, 1]
+    // Boldness: float [-1, 1]
     // (0, 1]  = curious
     // [-1, 0) = fearful
     // [0]      = indifferent
-    curiosity: Math.random() * 2 - 1,
+    boldness: Math.random() * 2 - 1,
     // Top Speed: float [0, 10]
     topSpeed: 2,
     // Collision radius: float
@@ -85,13 +85,13 @@ function Critter(p, v, s, attribs) {
   this.status = Status.WANDERING;
   this.animationId = animationSync.registerAnimation(this.wander, 1, this);
   // Update status periodically
-  animationSync.registerAnimation(this.updateStatus, 5, this);
+  animationSync.registerAnimation(this.updateStatus, 5 * this.normalizeBoldness(), this);
 
-  // The critter's body:
+  // Setup the critter's shapes:
   this.body = new Path.Circle(this.point, this.size.width);
   this.body.style = {
     strokeColor: "black",
-    fillColor: "white",
+    fillColor: new Color(1),
     strokeWidth: 2
   };
   this.eye1 = new Path.Circle(this.point, 6);
@@ -116,20 +116,16 @@ function Critter(p, v, s, attribs) {
   // this.vectorPath.add(new Point());
   // this.vectorPath.strokeColor = "green";
 }
+
 Critter.prototype = {
 
   /**
    * Call all necessary functions to update this critter on a given frame
-   * NOTE: This is the ONLY function that should be called externally
    */
   iterate: function() {
     this.updateVector();
     this.updatePosition();
-  },
-
-  wander: function() {
-    // Move random and aimlessly by going to a random point on screen
-    this.dest = Point.random() * new Point(SCREEN_WIDTH, SCREEN_HEIGHT);
+    this.drawEyes();
   },
 
   updateVector: function() {
@@ -160,6 +156,7 @@ Critter.prototype = {
         this.vector.length += this.attributes.topSpeed / 10;
       }
     }
+    // Cap speed
     this.vector.length = Math.min(this.vector.length, this.attributes.topSpeed);
     this.vector.angle += this.vector.getDirectedAngle(directedVector)
       / (15 - this.attributes.topSpeed);
@@ -171,21 +168,20 @@ Critter.prototype = {
    */
   updatePosition: function() {
     this.point += this.vector;
-    // Wrap is critter goes off screen
+    // Wrap if critter goes off screen
     if (this.point.x < -this.size.width) {
-      this.point.x = view.viewSize.width + this.size.width/2;
+      this.point.x = view.viewSize.width + this.size.width;
     }
     else if (this.point.x > view.viewSize.width + this.size.width) {
-      this.point.x = -this.size.width/2;
+      this.point.x = -this.size.width;
     }
     if (this.point.y < -this.size.height) {
-      this.point.y = view.viewSize.height + this.size.height/2;
+      this.point.y = view.viewSize.height + this.size.height;
     }
     else if (this.point.y > view.viewSize.height + this.size.height) {
-      this.point.y = -this.size.height/2;
+      this.point.y = -this.size.height;
     }
     this.body.position = this.point;
-    this.drawEyes();
   },
 
   drawEyes: function() {
@@ -205,8 +201,8 @@ Critter.prototype = {
   },
 
   updateStatus: function() {
-    // Switch statuses based upon curiosity right now
-    var switchingStatus = Math.floor(Math.random() + this.normalizeCuriosity());
+    // Switch statuses based upon boldness right now
+    var switchingStatus = Math.floor(Math.random() + this.normalizeBoldness());
     if (!switchingStatus) {
       return;
     }
@@ -215,7 +211,7 @@ Critter.prototype = {
     animationSync.unregisterAnimation(this.animationId);
     if (this.status === Status.RESTING) {
       this.animationId = animationSync.registerAnimation(
-        this.wander, 5 - 5 * this.normalizeCuriosity(), this);
+        this.wander, 5 - 5 * this.normalizeBoldness(), this);
       this.status = Status.WANDERING;
     }
     else {
@@ -223,13 +219,33 @@ Critter.prototype = {
     }
   },
 
-  /**
-   * Return curiosity normalized between 0 and 1
-   */
-  normalizeCuriosity: function() {
-    return (this.attributes.curiosity + 1) / 2;
+  wander: function() {
+    // Move random and aimlessly by going to a random point on screen
+    this.dest = Point.random() * new Point(SCREEN_WIDTH, SCREEN_HEIGHT);
   },
 
+  follow: function() {
+
+  },
+
+  /**
+   * Set the body color of this critter
+   */
+  setColor: function(color) {
+    this.body.fillColor = color;
+  },
+
+  /**
+   * Return boldness normalized between 0 and 1
+   */
+  normalizeBoldness: function() {
+    return (this.attributes.boldness + 1) / 2;
+  },
+
+  /**
+   * Convert this critters position, speed, direction, status, and attributes
+   * to a string
+   */
   toString: function() {
     var str = [
       "Position: (" + round(this.point.x, 2) + "," + round(this.point.y, 2) +")",
@@ -281,8 +297,26 @@ function onFrame(event) {
   animationSync.advance(event.delta);
 }
 
-function onMouseDown(event) {
-  pauseAnimation = !pauseAnimation;
+var lightsOut = false;
+function onKeyDown(event) {
+  // Turn the lights out if l is pressed
+  if (event.key === "l") {
+    lightsOut = !lightsOut;
+    var color;
+    if (lightsOut) {
+      color = new Color(0);
+    }
+    else {
+      color = new Color(1);
+    }
+    document.getElementById("drawingCanvas").style.backgroundColor = color.toCSS();
+    for (var i = 0; i < critterCount; i++) {
+      critterArray[i].setColor(color);
+    }
+  }
+  else if (event.key === "p") {
+    pauseAnimation = !pauseAnimation;
+  }
 }
 
 function onResize(event) {
