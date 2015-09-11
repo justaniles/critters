@@ -66,8 +66,13 @@ function Critter(p, v, s, attribs) {
     // Boldness: float [-1, 1]
     // (0, 1]  = curious
     // [-1, 0) = fearful
-    // [0]      = indifferent
+    // [0]     = indifferent
     boldness: Math.random() * 2 - 1,
+    // Social Level: float [-1, 1]
+    // (0, 1]  = likes other critters
+    // [-1, 0) = likes being alone, a loaner
+    // [0]     = neutral
+    socialLevel: Math.random() * 2 - 1, 
     // Top Speed: float [0, 10]
     topSpeed: 2,
     // Collision radius: float
